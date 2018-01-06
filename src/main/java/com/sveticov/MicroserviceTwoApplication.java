@@ -10,8 +10,12 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
 import java.util.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -27,20 +31,17 @@ public class MicroserviceTwoApplication implements CommandLineRunner {
     UserRepository repository;
 
 
-    @GetMapping("/two")
-    public String twoMic(
-    ) {
-        return "microservice two";
-    }
-
     public static void main(String[] args) {
         SpringApplication.run(MicroserviceTwoApplication.class, args);
     }
 
+    Set<ThemaEnglish> themaEnglishesl1;
+    List<User> userList;
+
     @Override
     public void run(String... strings) throws Exception {
         // userService.test();
-      // repository.deleteAll();
+        // repository.deleteAll();
 //
         long id = repository.count();
         List<Vocabulary> vocabularies = new ArrayList<>();
@@ -52,71 +53,61 @@ public class MicroserviceTwoApplication implements CommandLineRunner {
         themaEnglishes.add(new ThemaEnglish("th" + (id + 2), vocabularies));
 
         repository.save(new User(id, "n" + id, "l" + id, "p" + id, themaEnglishes));
-
-        List<User> userList = repository.findAll();
+        // List<User>
+        userList = repository.findAll();
 
         userList.forEach(System.out::println);
 
 
+        Map<String, List<ThemaEnglish>> userListMap = userList.stream()
+                .collect(Collectors.toMap(u -> u.getNameUser(), p -> p.getThemaEnglishList()));
+        userListMap.forEach((k, v) -> System.out.println(k + "  " + v));
 
-//
-//userList.stream()
-//        .map(user -> user.getThemaEnglishList())
-//        .forEach(themaEnglishes -> themaEnglishes.stream()
-//                .forEach(themaEnglish ->themaEnglish.getVocabularies()
-//                        .stream()
-//                        .forEach(vocabulary -> System.out.println(vocabulary))));
-//
-//List<Long> lists=
-//        userList.stream()
-//                .forEach(user -> user.getThemaEnglishList().forEach(themaEnglish -> System.out.println(themaEnglish.getNameThemaEnglish()+"  "+ themaEnglish.getVocabularies()+" ")));
 
-  Map<String,List<ThemaEnglish>> userListMap=userList.stream()
-          .collect(Collectors.toMap(u->u.getNameUser(),p->p.getThemaEnglishList()));
-  userListMap.forEach((k,v)-> System.out.println(k+"  "+v));
+        //Set<ThemaEnglish>
+        themaEnglishesl1 = userListMap.values().stream()
+                .map(themaEnglishes1 -> themaEnglishes1.listIterator())
+                .map(themaEnglishListIterator -> themaEnglishListIterator.next())
 
-//  List<List<ThemaEnglish>> userListMap = userList.stream()
-//          .map(user->user.getThemaEnglishList())
-//          .collect(Collectors.toList());
-//  userListMap.forEach(System.out::println);
+                .collect(Collectors.toSet());
 
-Set<ThemaEnglish> themaEnglishesl1=  userListMap.values().stream()
-          .map(themaEnglishes1 -> themaEnglishes1.listIterator())
-         .map(themaEnglishListIterator -> themaEnglishListIterator.next())
-     
-        .collect(Collectors.toSet());
+        themaEnglishesl1.stream().forEach(System.out::println);
 
-themaEnglishesl1.stream().forEach(System.out::println);
+        Set<Vocabulary> vocabularies1 = themaEnglishesl1.stream()
+                .map(themaEnglish -> themaEnglish.getVocabularies().listIterator().next())
 
-Set<Vocabulary> vocabularies1= themaEnglishesl1.stream()
-        .map(themaEnglish -> themaEnglish.getVocabularies().listIterator().next())
+                .collect(Collectors.toSet());
 
-        .collect(Collectors.toSet());
+        vocabularies1.forEach(System.out::println);
 
-vocabularies1.forEach(System.out::println);
-//                .forEach(themaEnglishListIterator ->{
-//                //    themaEnglishes1.add(themaEnglishListIterator.next());
-//                    System.out.println( themaEnglishListIterator.next().getNameThemaEnglish());
-//                });
+    }
 
-//      themaEnglishes.forEach(System.out::println);
 
-//        <editor-fold desc="Description">
-//        Work code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//        </editor-fold>
+    @GetMapping("/two")
+    public String twoMic(
+    ) {
+        return "microservice two";
+    }
 
-//userList.stream()
-//        .map(user -> user.getThemaEnglishList())
-//        .forEach(System.out::println);
-//
-//        Map<String,List<ThemaEnglish>> map=userList.stream()
-//                .collect(Collectors.toMap(u->u.getNameUser(),p->p.getThemaEnglishList()));
-//
-//
-//map.forEach((k,v)-> System.out.println(k+"  "+v));
-//
-//List<String> list=map.entrySet()
-//        .iterator().next().getValue().stream().map(themaEnglish -> themaEnglish.getNameThemaEnglish()).collect(Collectors.toList());
-//list.forEach(System.out::println);
+    @GetMapping("/th")
+    @ResponseBody
+    public Set<ThemaEnglish> themaEnglishes() {
+        return themaEnglishesl1;
+    }
+
+    @GetMapping("/user/{id}")
+    @ResponseBody
+    public Map<String, List<User>> userList(@PathVariable long id, HttpSession session) {
+        List<User> users = userList.stream()
+                .filter(user -> user.getIdUser() == id)
+                .collect(Collectors.toList());
+        Map<String, List<User>> map = new HashMap<>();
+        map.put("Success id: " + id + " " + session.getId() + "  " + session.toString(), users);
+        if (users.isEmpty()) {
+            map.clear();
+            map.put("Error id: " + id + " " + session.getId() + "  " + session.toString(), users);
+            return map;
+        }
+        return map;
     }
 }
